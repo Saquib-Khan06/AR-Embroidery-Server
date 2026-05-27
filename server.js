@@ -103,7 +103,6 @@ async function sendInquiryEmail(inquiry, refImagePath) {
   const payload = {
     from: 'AR Embroidery <onboarding@resend.dev>',
     to: [CONTACT_EMAIL],
-    reply_to: inquiry.email,
     subject: `New Inquiry — ${inquiry.name}`,
     html: html
   };
