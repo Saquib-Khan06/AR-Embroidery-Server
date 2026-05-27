@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AR Embroidery — Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Inter+Tight:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.5.0/dist/tabler-icons.min.css" />
+  <style>
+    :root {
+      --ivory: #faf6ef; --ivory-warm: #f3ecdf;
+      --emerald: #1a3a32; --emerald-deep: #0f2620;
+      --gold: #a8864f; --gold-soft: #c9a866;
+      --ink: #2a241e; --ink-soft: #5a4f42;
+      --line: rgba(168, 134, 79, 0.22);
+      --serif: 'Cormorant Garamond', Georgia, serif;
+      --sans: 'Inter Tight', sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--sans); background: var(--ivory); color: var(--ink); }
+    .serif { font-family: var(--serif); }
+
+    /* Login */
+    .login-wrap {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      background: radial-gradient(ellipse at center, rgba(168, 134, 79, 0.08), transparent), var(--ivory);
+    }
+    .login-card {
+      background: var(--ivory); border: 0.5px solid var(--line);
+      padding: 56px 44px; width: 100%; max-width: 380px;
+      box-shadow: 0 30px 80px rgba(15, 38, 32, 0.08);
+    }
+    .login-brand {
+      font-family: var(--serif); font-size: 26px; letter-spacing: 0.35em;
+      color: var(--emerald); text-align: center; margin-bottom: 4px;
+    }
+    .login-brand em { color: var(--gold); font-style: normal; }
+    .login-sub {
+      text-align: center; font-size: 10px; letter-spacing: 0.3em;
+      text-transform: uppercase; color: var(--ink-soft); margin-bottom: 36px;
+    }
+    .field { margin-bottom: 18px; }
+    .field label {
+      display: block; font-size: 10px; letter-spacing: 0.24em;
+      text-transform: uppercase; color: var(--ink-soft); margin-bottom: 8px; font-weight: 500;
+    }
+    .field input {
+      width: 100%; padding: 14px; background: var(--ivory-warm);
+      border: 0.5px solid var(--line); font-family: var(--sans); font-size: 14px;
+      color: var(--ink);
+    }
+    .field input:focus { outline: none; border-color: var(--gold); background: var(--ivory); }
+    .btn {
+      width: 100%; padding: 14px; background: var(--emerald); color: var(--ivory);
+      border: none; font-family: var(--sans); font-size: 11px;
+      letter-spacing: 0.28em; text-transform: uppercase; cursor: pointer;
+      font-weight: 500; transition: all 0.4s;
+    }
+    .btn:hover { background: var(--emerald-deep); letter-spacing: 0.32em; }
+    .login-error {
+      margin-top: 16px; padding: 12px; background: rgba(180,50,50,0.08);
+      border-left: 2px solid #b43232; color: #8a1f1f; font-size: 12px;
+      display: none;
+    }
+    .login-error.show { display: block; }
+
+    /* Dashboard */
+    .dash { display: none; min-height: 100vh; }
+    .dash.show { display: block; }
+    .topbar {
+      background: var(--emerald-deep); color: var(--ivory);
+      padding: 16px 32px; display: flex; align-items: center; justify-content: space-between;
+    }
+    .topbar-brand { font-family: var(--serif); font-size: 18px; letter-spacing: 0.3em; }
+    .topbar-brand em { color: var(--gold-soft); font-style: normal; }
+    .logout {
+      background: transparent; color: var(--ivory); border: 0.5px solid rgba(201,168,102,0.4);
+      padding: 8px 16px; font-size: 10px; letter-spacing: 0.24em; text-transform: uppercase;
+      cursor: pointer; font-family: var(--sans); transition: all 0.3s;
+    }
+    .logout:hover { background: var(--gold); color: var(--emerald-deep); border-color: var(--gold); }
+
+    .dash-container { max-width: 1280px; margin: 0 auto; padding: 40px 32px; }
+
+    /* Stats */
+    .stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 18px; margin-bottom: 40px; }
+    .stat-card {
+      background: var(--ivory); border: 0.5px solid var(--line);
+      padding: 24px; transition: all 0.4s;
+    }
+    .stat-card:hover { border-color: var(--gold); transform: translateY(-2px); }
+    .stat-card .label {
+      font-size: 10px; letter-spacing: 0.24em; text-transform: uppercase;
+      color: var(--ink-soft); margin-bottom: 10px; font-weight: 500;
+    }
+    .stat-card .num {
+      font-family: var(--serif); font-size: 36px; color: var(--emerald-deep); line-height: 1;
+    }
+    .stat-card.alert .num { color: var(--gold-deep); }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 4px; border-bottom: 0.5px solid var(--line); margin-bottom: 24px; }
+    .tab {
+      padding: 14px 24px; background: none; border: none; cursor: pointer;
+      font-family: var(--sans); font-size: 11px; letter-spacing: 0.24em;
+      text-transform: uppercase; color: var(--ink-soft); font-weight: 500;
+      border-bottom: 2px solid transparent; transition: all 0.3s;
+    }
+    .tab.active { color: var(--emerald-deep); border-bottom-color: var(--gold); }
+    .tab:hover { color: var(--emerald-deep); }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* Cards / List */
+    .item-card {
+      background: var(--ivory); border: 0.5px solid var(--line);
+      padding: 24px; margin-bottom: 16px;
+    }
+    .item-head {
+      display: flex; justify-content: space-between; align-items: start;
+      margin-bottom: 16px; padding-bottom: 14px; border-bottom: 0.5px solid var(--line);
+      flex-wrap: wrap; gap: 12px;
+    }
+    .item-name {
+      font-family: var(--serif); font-size: 22px; color: var(--emerald-deep); font-weight: 500;
+    }
+    .item-date {
+      font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase;
+      color: var(--ink-soft);
+    }
+    .item-meta { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 14px; font-size: 13px; }
+    .item-meta .meta-label {
+      font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+      color: var(--ink-soft); font-weight: 500; margin-bottom: 3px;
+    }
+    .item-meta .meta-value { color: var(--emerald-deep); }
+    .item-meta a { color: var(--gold-deep); text-decoration: none; }
+    .item-meta a:hover { text-decoration: underline; }
+    .item-body {
+      padding: 16px; background: var(--ivory-warm);
+      font-size: 14px; line-height: 1.7; color: var(--ink);
+      white-space: pre-wrap;
+    }
+    .item-actions { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+    .btn-mini {
+      padding: 8px 16px; font-size: 10px; letter-spacing: 0.24em;
+      text-transform: uppercase; cursor: pointer; font-family: var(--sans);
+      border: 0.5px solid var(--line); background: transparent; color: var(--ink);
+      font-weight: 500; transition: all 0.3s;
+    }
+    .btn-mini:hover { border-color: var(--gold); color: var(--gold-deep); }
+    .btn-mini.primary { background: var(--emerald); color: var(--ivory); border-color: var(--emerald); }
+    .btn-mini.primary:hover { background: var(--emerald-deep); }
+    .btn-mini.danger:hover { border-color: #b43232; color: #b43232; }
+    .btn-mini.whatsapp { background: #25d366; color: white; border-color: #25d366; }
+
+    .status-badge {
+      display: inline-block; padding: 4px 10px; font-size: 9px;
+      letter-spacing: 0.22em; text-transform: uppercase; font-weight: 500;
+    }
+    .status-new { background: rgba(168, 134, 79, 0.15); color: var(--gold-deep); }
+    .status-contacted { background: rgba(26, 58, 50, 0.1); color: var(--emerald-deep); }
+    .status-completed { background: rgba(26, 58, 50, 0.7); color: var(--ivory); }
+    .status-pending { background: rgba(168, 134, 79, 0.15); color: var(--gold-deep); }
+    .status-approved { background: rgba(26, 58, 50, 0.7); color: var(--ivory); }
+
+    .empty {
+      text-align: center; padding: 80px 20px; color: var(--ink-soft);
+      font-family: var(--serif); font-style: italic; font-size: 18px;
+    }
+
+    .ref-image { max-width: 180px; margin-top: 12px; border: 0.5px solid var(--line); }
+
+    .stars { color: var(--gold); letter-spacing: 3px; font-size: 16px; }
+
+    @media (max-width: 760px) {
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .item-meta { grid-template-columns: 1fr; }
+      .dash-container { padding: 24px 16px; }
+      .tabs { overflow-x: auto; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- LOGIN -->
+  <div class="login-wrap" id="loginWrap">
+    <form class="login-card" id="loginForm">
+      <div class="login-brand serif">A<em>R</em></div>
+      <div class="login-sub">Atelier Admin</div>
+      <div class="field">
+        <label>Admin Password</label>
+        <input type="password" id="adminPass" autocomplete="current-password" required />
+      </div>
+      <button type="submit" class="btn">Sign In</button>
+      <div class="login-error" id="loginError">Incorrect password.</div>
+    </form>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="dash" id="dash">
+    <div class="topbar">
+      <div class="topbar-brand serif">A<em>R</em> EMBROIDERY · ADMIN</div>
+      <button class="logout" id="logoutBtn">Sign Out</button>
+    </div>
+
+    <div class="dash-container">
+      <div class="stats" id="stats"></div>
+
+      <div class="tabs">
+        <button class="tab active" data-tab="inquiries">Inquiries</button>
+        <button class="tab" data-tab="feedback">Reviews</button>
+        <button class="tab" data-tab="newsletter">Newsletter</button>
+      </div>
+
+      <div class="tab-panel active" id="panel-inquiries"></div>
+      <div class="tab-panel" id="panel-feedback"></div>
+      <div class="tab-panel" id="panel-newsletter"></div>
+    </div>
+  </div>
+
+  <script>
+    const API = window.location.origin + '/api';
+    let token = sessionStorage.getItem('ar_admin_token') || null;
+
+    /* ===== LOGIN ===== */
+    const loginForm = document.getElementById('loginForm');
+    const loginWrap = document.getElementById('loginWrap');
+    const dash = document.getElementById('dash');
+    const loginError = document.getElementById('loginError');
+
+    async function tryLogin(password) {
+      // Test by hitting an admin endpoint
+      const res = await fetch(API + '/admin/stats', {
+        headers: { 'Authorization': 'Bearer ' + password }
+      });
+      if (res.ok) {
+        token = password;
+        sessionStorage.setItem('ar_admin_token', password);
+        loginWrap.style.display = 'none';
+        dash.classList.add('show');
+        loadAll();
+        return true;
+      }
+      return false;
+    }
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      loginError.classList.remove('show');
+      const pass = document.getElementById('adminPass').value;
+      const ok = await tryLogin(pass);
+      if (!ok) loginError.classList.add('show');
+    });
+
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      sessionStorage.removeItem('ar_admin_token');
+      token = null;
+      dash.classList.remove('show');
+      loginWrap.style.display = 'flex';
+    });
+
+    if (token) tryLogin(token).then(ok => { if (!ok) sessionStorage.removeItem('ar_admin_token'); });
+
+    /* ===== TABS ===== */
+    document.querySelectorAll('.tab').forEach(t => {
+      t.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(x => x.classList.remove('active'));
+        t.classList.add('active');
+        document.getElementById('panel-' + t.dataset.tab).classList.add('active');
+      });
+    });
+
+    /* ===== API HELPERS ===== */
+    async function api(path, opts = {}) {
+      const res = await fetch(API + path, {
+        ...opts,
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json', ...(opts.headers || {}) }
+      });
+      if (!res.ok) throw new Error('API error');
+      return res.json();
+    }
+
+    /* ===== ESCAPE ===== */
+    function esc(s) { return String(s || '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;' }[c])); }
+
+    /* ===== LOAD ALL ===== */
+    async function loadAll() {
+      loadStats();
+      loadInquiries();
+      loadFeedback();
+      loadNewsletter();
+    }
+
+    async function loadStats() {
+      try {
+        const s = await api('/admin/stats');
+        document.getElementById('stats').innerHTML = `
+          <div class="stat-card ${s.newInquiries > 0 ? 'alert' : ''}">
+            <div class="label">New Inquiries</div>
+            <div class="num">${s.newInquiries}</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">Total Inquiries</div>
+            <div class="num">${s.totalInquiries}</div>
+          </div>
+          <div class="stat-card ${s.pendingFeedback > 0 ? 'alert' : ''}">
+            <div class="label">Pending Reviews</div>
+            <div class="num">${s.pendingFeedback}</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">Total Reviews</div>
+            <div class="num">${s.totalFeedback}</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">Newsletter</div>
+            <div class="num">${s.newsletterSubscribers}</div>
+          </div>
+        `;
+      } catch (e) { console.error(e); }
+    }
+
+    async function loadInquiries() {
+      try {
+        const list = await api('/admin/inquiries');
+        const panel = document.getElementById('panel-inquiries');
+        if (!list.length) { panel.innerHTML = '<div class="empty">No inquiries yet.</div>'; return; }
+
+        panel.innerHTML = list.map(i => {
+          const waLink = `https://wa.me/${i.phone.replace(/\D/g, '')}?text=${encodeURIComponent('Hello ' + i.name + ', thank you for your inquiry with AR Embroidery.')}`;
+          const mailLink = `mailto:${i.email}?subject=${encodeURIComponent('Re: Your AR Embroidery Inquiry')}`;
+          const date = new Date(i.timestamp).toLocaleString('en-IN');
+          return `
+            <div class="item-card">
+              <div class="item-head">
+                <div>
+                  <div class="item-name serif">${esc(i.name)}</div>
+                  <div class="item-date">${date}</div>
+                </div>
+                <span class="status-badge status-${i.status || 'new'}">${esc(i.status || 'new')}</span>
+              </div>
+              <div class="item-meta">
+                <div><div class="meta-label">Phone</div><div class="meta-value"><a href="tel:${i.phone}">${esc(i.phone)}</a></div></div>
+                <div><div class="meta-label">Email</div><div class="meta-value"><a href="mailto:${i.email}">${esc(i.email)}</a></div></div>
+                <div><div class="meta-label">Budget</div><div class="meta-value">${esc(i.budget || 'Not specified')}</div></div>
+                <div><div class="meta-label">Deadline</div><div class="meta-value">${esc(i.deadline || 'Not specified')}</div></div>
+              </div>
+              <div class="item-body">${esc(i.requirement)}</div>
+              ${i.referenceImage ? `<img class="ref-image" src="${i.referenceImage}" alt="Reference" />` : ''}
+              <div class="item-actions">
+                <a href="${waLink}" target="_blank" class="btn-mini whatsapp"><i class="ti ti-brand-whatsapp"></i> WhatsApp</a>
+                <a href="${mailLink}" class="btn-mini">Reply via Email</a>
+                <button class="btn-mini" onclick="updateInquiryStatus('${i.id}', 'contacted')">Mark Contacted</button>
+                <button class="btn-mini primary" onclick="updateInquiryStatus('${i.id}', 'completed')">Mark Completed</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch (e) { console.error(e); }
+    }
+
+    window.updateInquiryStatus = async function(id, status) {
+      await api(`/admin/inquiry/${id}/status`, { method: 'POST', body: JSON.stringify({ status }) });
+      loadInquiries(); loadStats();
+    };
+
+    async function loadFeedback() {
+      try {
+        const list = await api('/admin/feedback');
+        const panel = document.getElementById('panel-feedback');
+        if (!list.length) { panel.innerHTML = '<div class="empty">No reviews yet.</div>'; return; }
+
+        panel.innerHTML = list.map(f => `
+          <div class="item-card">
+            <div class="item-head">
+              <div>
+                <div class="item-name serif">${esc(f.name)}</div>
+                <div class="item-date">${esc(f.role || '')}  ${new Date(f.timestamp).toLocaleString('en-IN')}</div>
+              </div>
+              <span class="status-badge status-${f.approved ? 'approved' : 'pending'}">${f.approved ? 'Approved' : 'Pending'}</span>
+            </div>
+            <div class="stars">${'★'.repeat(f.rating || 5)}${'☆'.repeat(5 - (f.rating || 5))}</div>
+            <div class="item-body" style="margin-top: 12px;">${esc(f.message)}</div>
+            <div class="item-actions">
+              ${!f.approved ? `<button class="btn-mini primary" onclick="approveFeedback('${f.id}')">Approve & Publish</button>` : ''}
+              <button class="btn-mini danger" onclick="deleteFeedback('${f.id}')">Delete</button>
+            </div>
+          </div>
+        `).join('');
+      } catch (e) { console.error(e); }
+    }
+
+    window.approveFeedback = async function(id) {
+      await api(`/admin/feedback/${id}/approve`, { method: 'POST' });
+      loadFeedback(); loadStats();
+    };
+    window.deleteFeedback = async function(id) {
+      if (!confirm('Delete this review?')) return;
+      await api(`/admin/feedback/${id}`, { method: 'DELETE' });
+      loadFeedback(); loadStats();
+    };
+
+    async function loadNewsletter() {
+      try {
+        // Reuse stats endpoint for count; show simple count panel
+        const panel = document.getElementById('panel-newsletter');
+        const s = await api('/admin/stats');
+        panel.innerHTML = `
+          <div class="item-card">
+            <div class="item-name serif">${s.newsletterSubscribers} subscriber${s.newsletterSubscribers === 1 ? '' : 's'}</div>
+            <p style="color: var(--ink-soft); font-size: 13px; margin-top: 12px; line-height: 1.7;">
+              The full subscriber list is stored in <code>server/data/newsletter.json</code>. You can download or export it from the server directly.
+            </p>
+          </div>
+        `;
+      } catch (e) { console.error(e); }
+    }
+  </script>
+</body>
+</html>
