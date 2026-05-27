@@ -1,21 +1,11 @@
 /* ============================================================
-   AR EMBROIDERY — Backend Server
-   Express + Nodemailer + JSON file storage
-   Endpoints:
-   - POST /api/inquiry       Submit custom order inquiry (+ email)
-   - POST /api/feedback      Submit review (public after moderation)
-   - GET  /api/feedback      Get approved reviews
-   - POST /api/newsletter    Newsletter signup
-   - GET  /api/admin/inquiries     Admin: list all inquiries (auth)
-   - GET  /api/admin/feedback      Admin: list all feedback (auth)
-   - POST /api/admin/feedback/:id/approve   Admin: approve review
-   - DELETE /api/admin/feedback/:id         Admin: delete review
+   AR EMBROIDERY — Backend Server (Resend Version)
+   Uses Resend API for reliable email delivery on Render free tier
    ============================================================ */
 
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
-const nodemailer = require('nodemailer');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -27,11 +17,7 @@ const PORT = process.env.PORT || 5000;
 // ===== CONFIG =====
 const CONTACT_EMAIL = process.env.CONTACT_EMAIL || 'Khan.saquib006@gmail.com';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'change-this-password';
-
-// SMTP (Gmail by default — use App Password from Google Account)
-// To get one: https://myaccount.google.com/apppasswords
-const SMTP_USER = process.env.SMTP_USER || CONTACT_EMAIL;
-const SMTP_PASS = process.env.SMTP_PASS || '';  // ⚠️ Set in .env
+const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
 
 // ===== MIDDLEWARE =====
 app.use(cors());
@@ -84,24 +70,12 @@ function writeData(file, data) {
   fs.writeFileSync(file, JSON.stringify(data, null, 2));
 }
 
-// ===== EMAIL TRANSPORTER =====
-let transporter = null;
-if (SMTP_PASS) {
-  transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: { user: SMTP_USER, pass: SMTP_PASS }
-  });
-  transporter.verify((err) => {
-    if (err) console.warn('⚠️  SMTP not ready:', err.message);
-    else console.log('✓ SMTP ready —', SMTP_USER);
-  });
-} else {
-  console.warn('⚠️  SMTP_PASS missing in .env — emails will NOT be sent.');
-  console.warn('   Inquiries will still be saved. Get a Gmail App Password and add it to .env.');
-}
-
+// ===== EMAIL VIA RESEND =====
 async function sendInquiryEmail(inquiry, refImagePath) {
-  if (!transporter) return { sent: false, reason: 'SMTP not configured' };
+  if (!RESEND_API_KEY) {
+    console.warn('⚠️  RESEND_API_KEY missing — email not sent');
+    return { sent: false, reason: 'Resend API key not configured' };
+  }
 
   const html = `
     <div style="font-family: Georgia, serif; max-width: 640px; margin: 0 auto; background: #faf6ef; padding: 40px;">
@@ -120,26 +94,51 @@ async function sendInquiryEmail(inquiry, refImagePath) {
         <p style="font-weight: bold; color: #1a3a32; margin: 0 0 10px; font-size: 13px; letter-spacing: 2px; text-transform: uppercase;">Design Requirement</p>
         <p style="white-space: pre-wrap; line-height: 1.7; margin: 0; color: #2a241e;">${inquiry.requirement}</p>
       </div>
-      ${refImagePath ? `<p style="margin-top: 20px;"><a href="${refImagePath}" style="color: #8b6f3c;">📎 Reference image attached</a></p>` : ''}
+      ${refImagePath ? `<p style="margin-top: 20px; color: #8b6f3c; font-size: 12px;">📎 Reference image attached to this email</p>` : ''}
       <p style="margin-top: 40px; font-size: 11px; color: #8b6f3c; letter-spacing: 2px; text-transform: uppercase; text-align: center;">— Atelier Mumbai —</p>
+      <p style="margin-top: 16px; font-size: 11px; color: #8b6f3c; text-align: center;">Reply to this email to respond directly to ${inquiry.name}</p>
     </div>
   `;
 
-  const mailOpts = {
-    from: `"AR Embroidery Website" <${SMTP_USER}>`,
-    to: CONTACT_EMAIL,
-    replyTo: inquiry.email,
+  const payload = {
+    from: 'AR Embroidery <onboarding@resend.dev>',
+    to: [CONTACT_EMAIL],
+    reply_to: inquiry.email,
     subject: `New Inquiry — ${inquiry.name}`,
-    html
+    html: html
   };
 
+  // Attach reference image if provided
   if (refImagePath && fs.existsSync(refImagePath)) {
-    mailOpts.attachments = [{ filename: path.basename(refImagePath), path: refImagePath }];
+    try {
+      const fileContent = fs.readFileSync(refImagePath);
+      payload.attachments = [{
+        filename: path.basename(refImagePath),
+        content: fileContent.toString('base64')
+      }];
+    } catch (e) {
+      console.warn('Could not attach image:', e.message);
+    }
   }
 
   try {
-    const info = await transporter.sendMail(mailOpts);
-    return { sent: true, id: info.messageId };
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${RESEND_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const result = await response.json();
+    if (response.ok) {
+      console.log('✓ Email sent via Resend:', result.id);
+      return { sent: true, id: result.id };
+    } else {
+      console.error('Resend API error:', result);
+      return { sent: false, reason: result.message || 'Unknown error' };
+    }
   } catch (e) {
     console.error('Email send failed:', e.message);
     return { sent: false, reason: e.message };
@@ -161,7 +160,11 @@ function requireAdmin(req, res, next) {
 // ============================================================
 
 app.get('/api/health', (req, res) => {
-  res.json({ ok: true, smtp: !!transporter, time: new Date().toISOString() });
+  res.json({
+    ok: true,
+    resend: !!RESEND_API_KEY,
+    time: new Date().toISOString()
+  });
 });
 
 // --- Submit Inquiry ---
@@ -291,15 +294,15 @@ app.get('/api/admin/stats', requireAdmin, (req, res) => {
 // Serve admin panel
 app.use('/admin', express.static(path.join(__dirname, 'admin')));
 
-// Serve frontend (if running in same project)
-app.use('/', express.static(path.join(__dirname, '..')));
-
 // ============================================================
 app.listen(PORT, () => {
   console.log(`\n  ╔════════════════════════════════════════════╗`);
-  console.log(`  ║   AR EMBROIDERY BACKEND                    ║`);
-  console.log(`  ║   Running on http://localhost:${PORT}         ║`);
-  console.log(`  ║   Admin:    http://localhost:${PORT}/admin    ║`);
-  console.log(`  ║   API:      http://localhost:${PORT}/api      ║`);
-  console.log(`  ╚════════════════════════════════════════════╝\n`);
+  console.log(`  ║   AR EMBROIDERY BACKEND (Resend)           ║`);
+  console.log(`  ║   Running on port ${PORT}                      ║`);
+  console.log(`  ╚════════════════════════════════════════════╝`);
+  if (RESEND_API_KEY) {
+    console.log(`  ✓ Resend API ready`);
+  } else {
+    console.log(`  ⚠️  RESEND_API_KEY missing — set in environment`);
+  }
 });
